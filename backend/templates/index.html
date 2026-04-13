@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA TestHub</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<div id="notifyContainer" class="notify-container"></div>
+
+<div id="loginPage" class="login-container">
+  <canvas id="gameCanvas"></canvas>
+  <div class="login-box">
+    <h1>QA TestHub</h1>
+    <p class="subtitle">企业级测试管理平台</p>
+    
+    <div id="loginFormBox">
+      <div class="form-group"><label>用户名</label><input type="text" id="username" value="superadmin"></div>
+      <div class="form-group"><label>密码</label><input type="password" id="password" value="123456"></div>
+      <button class="btn btn-block" onclick="handleLogin()">登 录</button>
+      <button class="btn btn-secondary btn-block" style="margin-top:12px" onclick="showRegister()">注册新账号</button>
+    </div>
+    
+    <div id="registerFormBox" style="display:none">
+      <div class="form-group"><label class="required">中文名</label><input type="text" id="regChineseName" placeholder="2-10位纯中文字符"></div>
+      <div class="form-group"><label class="required">用户名</label><input type="text" id="regUsername" placeholder="4-20位纯英文字符"></div>
+      <div class="form-group"><label class="required">手机号</label><input type="tel" id="regPhone" placeholder="请输入真实手机号"></div>
+      <div class="form-group"><label class="required">邮箱</label><input type="email" id="regEmail" placeholder="example@test.com"></div>
+      <div class="form-group">
+          <label>角色</label>
+          <input type="text" value="测试工程师 (默认)" disabled style="background:var(--bg-body); color:var(--text-secondary); cursor:not-allowed;">
+      </div>
+      <div class="form-group"><label class="required">密码</label><input type="password" id="regPassword" placeholder="需包含字母与数字，禁用水管符"></div>
+      <div class="form-group"><label class="required">确认密码</label><input type="password" id="regConfirm" placeholder="请再次输入新密码"></div>
+      <button class="btn btn-block" onclick="handleRegister()">注 册</button>
+      <button class="btn btn-secondary btn-block" style="margin-top:12px" onclick="showLogin()">返回登录</button>
+    </div>
+  </div>
+</div>
+
+<div id="mainApp" class="app-container">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header"><h2>TestHub Pro</h2></div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <div class="page-title" id="pageTitle">首页</div>
+        <div class="topbar-right">
+          <button class="theme-btn" onclick="toggleTheme()" title="点击循环切换主题">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          </button>
+          <button class="theme-btn" onclick="openThemeConfig()" title="主题配置">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </button>
+          <div class="user-menu">
+            <div class="user-avatar" id="avatarBtn" onclick="toggleUserMenu()"><span id="avatarIcon">👤</span></div>
+            <div class="user-dropdown" id="userDropdown">
+              <div class="dropdown-header">
+                <div class="dropdown-avatar" id="dropAvatar"><span id="dropAvatarIcon">👤</span></div>
+                <div id="dropChineseName" style="font-size:15px; font-weight:bold; margin-bottom:2px; color:#fff;">中文名</div>
+                <div id="dropUsername" class="dropdown-username" style="font-size:12px; opacity:0.9;">Admin</div>
+                <div id="dropRole" style="font-size:12px;margin-top:4px;opacity:0.8;">管理员</div>
+              </div>
+              <div class="dropdown-item" onclick="openProfile()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>编辑资料</span>
+              </div>
+              <div class="dropdown-item" onclick="openPassword()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>修改密码</span>
+              </div>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-item" onclick="handleLogout()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                <span style="color:var(--danger)">退出登录</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div class="content">
+        <div id="page-dashboard" class="page-section active">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon" style="background:#e0f2fe; color:#0284c7;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div><div class="stat-info"><div class="stat-label">总用例数</div><div class="stat-value" id="statTotal">0</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:#dcfce7; color:#16a34a;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div><div class="stat-info"><div class="stat-label">已通过</div><div class="stat-value" id="statPass" style="color:var(--success)">0</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:#fee2e2; color:#dc2626;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></div><div class="stat-info"><div class="stat-label">未通过</div><div class="stat-value" id="statFail" style="color:var(--danger)">0</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:#fef9c3; color:#d97706;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div><div class="stat-info"><div class="stat-label">待测试</div><div class="stat-value" id="statPending" style="color:var(--warning)">0</div></div></div>
+          </div>
+          <div class="content-card">
+            <div class="card-header"><div class="card-title">数据仪表盘</div><button class="btn btn-small" id="btnAddChart" onclick="addChart()">添加图表</button></div>
+            <div class="chart-grid" id="chartContainer"></div>
+          </div>
+        </div>
+
+        <div id="page-casegen" class="page-section">
+          <div class="content-card">
+            <div class="card-header"><div class="card-title">用例生成</div><div class="toolbar"><button class="btn btn-small" onclick="generateCasesFromInput()">执行生成</button><button class="btn btn-small btn-success" onclick="saveGeneratedCases()">保存到用例库</button><button class="btn btn-small btn-default" onclick="clearGeneratedCases()">清空</button></div></div>
+            <div class="generator-layout">
+              <div class="generator-box">
+                <div class="generator-upload" onclick="document.getElementById('genFile').click()">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:6px;"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                    <br>上传策划案或规则文档 (支持 .txt, .md, .docx)
+                </div>
+                <input type="file" id="genFile" accept=".txt,.md,.docx,.csv" onchange="handleGeneratorFile(event)">
+                <div class="form-row"><label>所属项目</label><select id="genProject"></select></div>
+                <div class="form-row"><label>所属模块</label><select id="genModule"></select></div>
+                <div class="form-row">
+                  <label>提示词 / 策划案内容</label>
+                  <textarea id="genPrompt" placeholder="示例：\n1. 账号输入错误时，提示密码错误\n2. 账号为空时，登录按钮置灰\n\n系统会自动提取有效信息并生成标准用例。"></textarea>
+                </div>
+                <div class="generator-tip">生成逻辑：优先识别编号、短横线、功能点语句；每一条会自动生成测试点、前置条件、操作步骤、预期结果与备注。</div>
+              </div>
+              <div class="generator-box">
+                <div style="font-weight:700;margin-bottom:12px;flex-shrink:0;font-size:14px;">生成预览</div>
+                <div id="generatedPreview" class="empty-state generator-preview">暂无生成结果</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="page-testcases" class="page-section">
+          <div class="content-card">
+            <div id="tc-view-projects" style="display: none; overflow-y: auto;">
+                <div class="card-header">
+                  <div class="card-title">项目大类</div>
+                    <div class="toolbar"><button class="btn btn-small" onclick="openProjectModal()">新建项目</button></div>
+                </div>
+                <div id="projectGrid" class="grid-card-container"></div>
+            </div>
+
+            <div id="tc-view-modules" style="display: none; overflow-y: auto;">
+                <div class="card-header">
+                    <div class="card-title">当前项目模块列表</div>
+                    <div class="toolbar"><button class="btn btn-small" onclick="openModuleModalCurrent()">新建模块</button></div>
+                </div>
+                <div id="moduleGrid" class="grid-card-container"></div>
+            </div>
+
+            <div id="tc-view-cases" style="display: none;">
+                <div class="card-header">
+                    <div class="card-title">测试用例</div>
+                    <div class="toolbar">
+                        <button class="btn btn-small btn-secondary" onclick="importTestCases()">导入 Excel</button>
+                        <button class="btn btn-small btn-secondary" onclick="exportTestCases()">导出 Excel</button>
+                        <div class="column-setting">
+                            <button class="column-setting-btn" onclick="toggleColumnSetting(event)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                                列设置
+                            </button>
+                            <div class="column-dropdown" id="columnDropdown"></div>
+                        </div>
+                        <button class="btn btn-small" id="btnAddCase" onclick="openTestModal()">新增用例</button>
+                    </div>
+                </div>
+                
+                <div class="batch-actions" id="batchActions" style="display:none">
+                    <span>已选择 <strong id="selectedCount">0</strong> 项</span>
+                    <button class="btn btn-small btn-purple" onclick="openAssignModal()">分配任务</button>
+                    <button class="btn btn-small btn-danger" id="btnBatchDelete" onclick="deleteSelectedCases()" style="display:none;">批量删除</button>
+                    <button class="btn btn-small btn-default" onclick="clearSelection()">取消选择</button>
+                </div>
+
+                <div class="filter-bar">
+                    <input type="text" id="searchInput" placeholder="搜索测试点..." onkeyup="renderTable()">
+                    <select id="filterLevel" onchange="renderTable()"><option value="">所有等级</option><option value="P1">P1</option><option value="P2">P2</option><option value="P3">P3</option></select>
+                    <select id="filterStatus" onchange="renderTable()"><option value="">所有状态</option><option value="通过">通过</option><option value="未通过">未通过</option><option value="待测试">待测试</option></select>
+                </div>
+                
+                <div class="table-container">
+                    <table class="data-table" id="testcaseTable">
+                        <thead id="tableHead"><tr></tr></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination-bar">
+                    <div class="page-size">
+                        <span>显示：</span>
+                        <select id="pageSize" onchange="changePageSize()">
+                            <option value="10">10条/页</option><option value="15" selected>15条/页</option><option value="20">20条/页</option><option value="50">50条/页</option>
+                        </select>
+                    </div>
+                    <div class="page-info" id="pageInfo">显示 0-0 共 0 条</div>
+                    <div class="page-btns" id="pageBtns"></div>
+                </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="page-tasks" class="page-section">
+          <div class="content-card">
+            <div class="card-header" style="flex-shrink:0;"><div class="card-title" id="taskTitle">全部任务</div></div>
+            <div class="filter-bar"><input type="text" id="taskSearchInput" placeholder="搜索任务..." onkeyup="renderTaskTable()"></div>
+            <div class="table-container">
+              <table class="data-table" id="taskTable">
+                <thead><tr><th>序号</th><th>项目</th><th>模块</th><th>测试点</th><th>等级</th><th>前置条件</th><th>操作步骤</th><th>预期结果</th><th>备注</th><th>创建人</th><th>执行人</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="taskTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="page-team" class="page-section">
+          <div class="content-card">
+            <div class="card-header" style="flex-shrink:0;"><div class="card-title">团队管理</div><button class="btn btn-small" onclick="openTeamMemberModal()">添加成员</button></div>
+            <div class="table-container">
+                <table class="data-table"><thead><tr><th>ID</th><th>头像</th><th>中文名</th><th>用户名</th><th>邮箱</th><th>手机号</th><th>角色</th><th>操作</th></tr></thead><tbody id="teamTableBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <div id="page-permission" class="page-section">
+          <div class="content-card"><div class="card-header"><div class="card-title">权限配置</div><button class="btn btn-small" onclick="savePermissions()">保存配置</button></div><div id="permissionContainer"></div></div>
+        </div>
+
+        <div id="page-settings" class="page-section">
+          <div class="content-card">
+            <div class="card-header"><div class="card-title">系统设置</div></div>
+            <div class="settings-tabs"><div class="settings-tab active" onclick="switchSettingsTab('basic',this)">基本设置</div><div class="settings-tab" onclick="switchSettingsTab('ai',this)">API设置</div></div>
+            
+            <div id="settings-basic" class="settings-panel active">
+              <div class="form-row"><label>系统名称</label><input type="text" id="sysName" value="QA TestHub Ultimate"></div>
+              <div class="form-row"><label>默认分页大小</label><select id="sysPageSize"><option value="10">10条</option><option value="15">15条</option><option value="20">20条</option><option value="50">50条</option></select></div>
+              <div class="form-row"><label>启用邮件通知</label><label class="switch" style="margin-top:8px"><input type="checkbox" id="sysEmailNotify" checked><span class="slider"></span></label></div>
+              <div class="form-row"><label>启用自动保存</label><label class="switch" style="margin-top:8px"><input type="checkbox" id="sysAutoSave" checked><span class="slider"></span></label></div>
+              <button class="btn btn-small" onclick="saveBasicSettings()" style="margin-top:10px">保存基本设置</button>
+            </div>
+            
+            <div id="settings-ai" class="settings-panel">
+              <div class="form-row"><label>启用云端同步</label><label class="switch" style="margin-top:8px"><input type="checkbox" id="aiEnabled"><span class="slider"></span></label></div>
+              <div class="form-row"><label>API Key</label><input type="password" id="aiApiKey" placeholder="输入 API Key"></div>
+              <div class="form-row"><label>自定义API地址</label><input type="text" id="aiApiUrl" placeholder="https://api.domain.com/v1"></div>
+              <button class="btn btn-small" onclick="saveAISettings()" style="margin-top:10px">保存API配置</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="assignModal" class="modal"><div class="modal-content" style="max-width:420px"><div class="modal-header"><div class="modal-title">分配给执行人</div><button class="modal-close" onclick="closeModal('assignModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div class="modal-body"><div class="form-row"><label>选择执行人</label><select id="assignExecutor"></select></div><p style="color:var(--text-secondary); font-size:13px;">将分配 <strong id="assignCount" style="color:var(--primary)">0</strong> 条用例给选定执行人。</p></div><div class="modal-footer"><button class="btn btn-default" onclick="closeModal('assignModal')">取消</button><button class="btn" onclick="confirmAssign()">确认分配</button></div></div></div>
+
+<div id="themeModal" class="modal"><div class="modal-content" style="max-width:560px"><div class="modal-header"><div class="modal-title">主题配置</div><button class="modal-close" onclick="closeModal('themeModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div class="modal-body"><div class="theme-options" id="themeOptions"></div></div></div></div>
+
+<div id="profileModal" class="modal">
+    <div class="modal-content" style="max-width:480px">
+        <div class="modal-header"><div class="modal-title">编辑个人资料</div><button class="modal-close" onclick="closeModal('profileModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+        <div class="modal-body">
+            <div style="text-align:center;margin-bottom:20px">
+                <label style="margin-bottom:12px; display:block">选择或上传头像</label>
+                <div class="avatar-selector">
+                    <div class="avatar-option" data-type="male" onclick="selectAvatar(this,'male')">👨‍💼</div>
+                    <div class="avatar-option" data-type="female" onclick="selectAvatar(this,'female')">👩‍💼</div>
+                    <div class="avatar-option" data-type="custom" id="customAvatarOption" onclick="document.getElementById('avatarFile').click()">
+                        <div id="customAvatarIcon" style="display:flex; flex-direction:column; align-items:center; line-height:1; justify-content:center; width:100%; height:100%;">
+                            <span style="font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 2px;">+</span>
+                            <span style="font-size: 20px;">📷</span>
+                        </div>
+                    </div>
+                </div>
+                <input type="file" id="avatarFile" accept="image/*" onchange="handleAvatarUpload(event)" style="display:none;">
+            </div>
+            <div class="form-row"><label class="required">中文名</label><input type="text" id="editChineseName" placeholder="2-10位纯中文字符"></div>
+            <div class="form-row"><label>用户名</label><input type="text" id="editUsername" disabled style="background:var(--bg-body); cursor:not-allowed"></div>
+            <div class="form-row"><label>手机号</label><input type="tel" id="editPhone"></div>
+            <div class="form-row"><label>邮箱</label><input type="email" id="editEmail"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-default" onclick="closeModal('profileModal')">取消</button><button class="btn" onclick="saveProfile()">保存修改</button></div>
+    </div>
+</div>
+
+<div id="avatarCropModal" class="modal">
+    <div class="modal-content" style="max-width: 520px;">
+        <div class="modal-header"><div class="modal-title">裁剪头像</div><button class="modal-close" onclick="closeModal('avatarCropModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div>
+        <div class="modal-body">
+            <div id="avatarEditor" class="avatar-editor show">
+                <div style="display: flex; gap: 20px;">
+                    <div class="avatar-editor-left" style="flex: 1; text-align: left;">
+                        <div style="text-align: center; margin-bottom: 10px; font-size: 13px; color: var(--text-secondary);">拖拽图像或缩放以调整位置</div>
+                        <div style="display: flex; justify-content: center;">
+                            <div class="avatar-editor-preview" id="avatarEditorViewport" style="width: 200px; height: 200px; border-radius: 12px; border: 2px dashed var(--border); position: relative; overflow: hidden; background: transparent;">
+                                <img id="avatarEditorImage" class="avatar-editor-image" alt="avatar" draggable="false">
+                                <div style="position: absolute; inset: 0; box-shadow: 0 0 0 999px rgba(0,0,0,0.6); border-radius: 50%; pointer-events: none;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 15px;">
+                            <input type="range" id="avatarZoom" style="flex: 1; cursor: pointer; accent-color:var(--primary);" min="1" max="3" step="0.01" value="1" oninput="updateAvatarEditor()">
+                            <button class="btn btn-small btn-default" type="button" onclick="resetAvatarEditor()">重置</button>
+                        </div>
+                    </div>
+                    <div class="avatar-editor-right" style="width: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-left: 1px solid var(--border); padding-left: 20px;">
+                        <div style="margin-bottom: 12px; font-size: 13px; color: var(--text-secondary); font-weight: bold;">生成预览</div>
+                        <canvas id="avatarPreviewCanvas" width="140" height="140" style="border-radius: 50%; background: transparent; border: 1px solid var(--border); box-shadow: 0 4px 10px var(--shadow);"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-default" onclick="closeModal('avatarCropModal')">取消</button><button class="btn btn-primary" onclick="confirmAvatarCrop()">确认</button></div>
+    </div>
+</div>
+
+<div id="passwordModal" class="modal"><div class="modal-content" style="max-width:420px"><div class="modal-header"><div class="modal-title">修改密码</div><button class="modal-close" onclick="closeModal('passwordModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div class="modal-body"><div class="form-row"><label>当前密码</label><input type="password" id="oldPassword"></div><div class="form-row"><label>新密码</label><input type="password" id="newPassword"></div><div class="form-row"><label>确认新密码</label><input type="password" id="confirmPassword"></div></div><div class="modal-footer"><button class="btn btn-default" onclick="closeModal('passwordModal')">取消</button><button class="btn" onclick="savePassword()">确认修改</button></div></div></div>
+
+<div id="testModal" class="modal"><div class="modal-content"><div class="modal-header"><div class="modal-title" id="testModalTitle">新增测试用例</div><button class="modal-close" onclick="closeModal('testModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div class="modal-body"><input type="hidden" id="testId"><div class="form-row"><label>项目</label><select id="testProject" disabled></select></div><div class="form-row"><label>模块</label><select id="testModule" disabled></select></div><div class="form-row"><label class="required">测试点</label><input type="text" id="testPoint"></div><div class="form-row"><label>等级</label><select id="testLevel"><option value="P1">P1 - 核心</option><option value="P2">P2 - 重要</option><option value="P3">P3 - 一般</option></select></div><div class="form-row"><label>前置条件</label><textarea id="testPrecondition"></textarea></div><div class="form-row"><label>操作步骤</label><textarea id="testSteps"></textarea></div><div class="form-row"><label>预期结果</label><textarea id="testExpected"></textarea></div><div class="form-row"><label>备注</label><input type="text" id="testRemark"></div></div><div class="modal-footer"><button class="btn btn-default" onclick="closeModal('testModal')">取消</button><button class="btn" onclick="saveTestCase()">保存</button></div></div></div>
+
+<div id="projectModal" class="modal"><div class="modal-content" style="max-width:420px"><div class="modal-header"><div class="modal-title">添加项目</div><button class="modal-close" onclick="closeModal('projectModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div class="modal-body"><div class="form-row"><label class="required">项目名称</label><input type="text" id="projectName"></div><div class="form-row"><label>项目描述</label><textarea id="projectDesc"></textarea></div></div><div class="modal-footer"><button class="btn btn-default" onclick="closeModal('projectModal')">取消</button><button class="btn" onclick="addProject()">添加</button></div></div></div>
+
+<div id="editProjectModal" class="modal">
+  <div class="modal-content" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">修改项目名称</div>
+      <button class="modal-close" onclick="closeModal('editProjectModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editProjectId">
+      <div class="form-row"><label class="required">新项目名称</label><input type="text" id="editProjectName"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('editProjectModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveEditProject()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="moduleModal" class="modal"><div class="modal-content" style="max-width:420px"><div class="modal-header"><div class="modal-title">添加模块</div><button class="modal-close" onclick="closeModal('moduleModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div class="modal-body"><input type="hidden" id="moduleProjectId"><div class="form-row"><label>所属项目</label><select id="moduleProjectSelect" disabled></select></div><div class="form-row"><label class="required">模块名称</label><input type="text" id="moduleName"></div></div><div class="modal-footer"><button class="btn btn-default" onclick="closeModal('moduleModal')">取消</button><button class="btn" onclick="addModule()">添加</button></div></div></div>
+
+<div id="editModuleModal" class="modal">
+  <div class="modal-content" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">修改模块名称</div>
+      <button class="modal-close" onclick="closeModal('editModuleModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editModProjId">
+      <input type="hidden" id="editModId">
+      <div class="form-row"><label class="required">新模块名称</label><input type="text" id="editModName"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-default" onclick="closeModal('editModuleModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveEditModule()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="teamMemberModal" class="modal"><div class="modal-content" style="max-width:480px"><div class="modal-header"><div class="modal-title" id="teamModalTitle">添加成员</div><button class="modal-close" onclick="closeModal('teamMemberModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div class="modal-body"><input type="hidden" id="editMemberId">
+    <div class="form-row"><label class="required">中文名</label><input type="text" id="memberChineseName" placeholder="2-10位纯中文字符"></div>
+    <div class="form-row"><label class="required">用户名</label><input type="text" id="memberUsername" placeholder="4-20位纯英文字符"></div>
+    <div class="form-row"><label class="required">邮箱</label><input type="email" id="memberEmail"></div>
+    <div class="form-row"><label class="required">手机号</label><input type="tel" id="memberPhone"></div>
+    <div class="form-row"><label>角色</label><select id="memberRole"></select></div>
+    <div class="form-row"><label>密码</label><input type="password" id="memberPassword" placeholder="新建默认: 123456；编辑时留空代表不修改"></div>
+</div><div class="modal-footer"><button class="btn btn-default" onclick="closeModal('teamMemberModal')">取消</button><button class="btn" onclick="saveTeamMember()">保存</button></div></div></div>
+
+<div id="chartModal" class="modal"><div class="modal-content" style="max-width:420px"><div class="modal-header"><div class="modal-title">添加图表</div><button class="modal-close" onclick="closeModal('chartModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button></div><div class="modal-body"><div class="form-row"><label>图表类型</label><select id="chartType"><option value="pie">饼图 - 状态分布</option><option value="bar">柱状图 - 模块用例分布</option><option value="line">折线图 - 增长趋势</option></select></div><div class="form-row"><label>图表标题</label><input type="text" id="chartTitle" placeholder="例如：核心用例分布"></div></div><div class="modal-footer"><button class="btn btn-default" onclick="closeModal('chartModal')">取消</button><button class="btn" onclick="confirmAddChart()">添加</button></div></div></div>
+
+<script src="/static/js/main.js"></script>
+
+</body>
+</html>
