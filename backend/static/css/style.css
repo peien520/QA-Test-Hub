@@ -189,10 +189,12 @@ input.has-error, select.has-error { border: 1px solid var(--danger) !important; 
     color: #ffffff;
 }
 
-/* 核心逻辑：单行高度38px + 下边距4px = 42px。5行正好是 210px，完美装下不漏半截 */
-.module-list-container { max-height: 210px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
-.module-list-container::-webkit-scrollbar { width: 4px; height: 0px; } /* 新增了 height: 0px，从物理层面抹除水平滚动条的厚度 */
-.module-list-container::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 4px; }
+/* 彻底解除项目和模块列表的高度限制，统一使用侧边栏外部主滚动条 */
+.module-list-container {
+    max-height: none;
+    overflow: visible;
+}
+
 /* 苹果果冻风：二级/三级菜单整体交互（只放大字体，去除了擅自加粗） */
 .project-item, .submenu-item, .module-item {
     display: flex; align-items: center; justify-content: space-between;
@@ -432,8 +434,7 @@ input[type="file"]{display:none}
 .review-batch-bar { display:flex; gap:10px; margin-bottom:16px; padding:10px 16px; background:var(--bg-body); border-radius:10px; align-items:center; flex-wrap:wrap; flex-shrink:0; border:1px solid var(--border); }
 .review-batch-bar span { font-size:13px; color:var(--text-primary); font-weight:500; }
 
-@media (max-width:1100px){.generator-layout{grid-template-columns:1fr}.sidebar{width:220px}.submenu.open{max-height:300px}}
-
+@media (max-width:1100px){.generator-layout{grid-template-columns:1fr}.sidebar{width:220px}.submenu.open{max-height:none}}
 /* ========================================== */
 /* 【核心修复】：彻底解决菜单无法折叠收回的问题（无动画纯净版） */
 /* ========================================== */
