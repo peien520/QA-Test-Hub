@@ -445,3 +445,29 @@ input[type="file"]{display:none}
 .submenu.open {
     display: block; /* 展开状态：只有带有 open 类的菜单才允许显示，干脆利落无动画 */
 }
+
+/* ========================================== */
+/* 【新增】：专属模块列表的滚动条与高度限制逻辑 */
+/* ========================================== */
+.only-module-scroll-box {
+    /* 单个模块高度38px + 4px间距 = 42px。6个模块就是252px。 */
+    /* 设置为 256px 刚好可以露出第7个模块的头部，视觉交互更好 */
+    max-height: 256px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+}
+
+/* 顺便美化一下这个局部的滚动条，让它不那么突兀 */
+.only-module-scroll-box::-webkit-scrollbar {
+    width: 4px;
+}
+.only-module-scroll-box::-webkit-scrollbar-track {
+    background: transparent;
+}
+.only-module-scroll-box::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
+    border-radius: 4px;
+}
+.only-module-scroll-box::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}

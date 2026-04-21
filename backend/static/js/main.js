@@ -595,7 +595,8 @@ function renderSidebar(){
                 html += '<div class="item-actions"><div class="expand-btn '+(isSubExp?'expanded':'')+'" onclick="toggleExpand(event,\''+subKey+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg></div></div></div>';
 
                 if(isSubExp) {
-                    html += '<div class="submenu open">';
+                    /* 【新增 only-module-scroll-box 限制审核模块超过6个滚动】 */
+                    html += '<div class="submenu open only-module-scroll-box">';
                     rvMods.forEach(function(mod){
                         // 判断当前模块是否被选中
                         var isModActive = (currentTab === 'review' && currentReviewFilter === item[0] && currentReviewModuleId === String(mod.id));
@@ -629,7 +630,8 @@ function renderSidebar(){
         html += '<div class="item-title"><span class="sub-icon sub-icon-folder">'+hierarchyIcons.folder+'</span><span>'+esc(proj.name)+'</span></div>';
         html += '<div class="item-actions"><div class="expand-btn '+(isProjExp?'expanded':'')+'" onclick="toggleProjectExpand(event,\''+proj.id+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg></div></div></div>';
         if(isProjExp) {
-            html += '<div class="submenu open module-list-container">';
+            /* 【新增 only-module-scroll-box 限制仓库模块超过6个滚动】 */
+            html += '<div class="submenu open module-list-container only-module-scroll-box">';
             (proj.modules||[]).forEach(function(mod){
 
                 // 【本次新增核心拦截】：如果这个模块被标记为“已隐藏”，我们就假装没看见它！直接跳过！
@@ -680,7 +682,8 @@ function renderSidebar(){
                         html += '<div class="item-actions"><div class="expand-btn '+(pE?'expanded':'')+'" onclick="toggleTaskProjectExpand(event,\''+pK+'\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg></div></div></div>';
 
                         if(pE) {
-                            html += '<div class="submenu open module-list-container">';
+                            /* 【新增 only-module-scroll-box 限制任务中心模块超过6个滚动】 */
+                            html += '<div class="submenu open module-list-container only-module-scroll-box">';
                             (proj.modules||[]).forEach(function(mod){
                                 var modHasD = (data.testcases||[]).some(function(tc){
                                     if(String(tc.moduleId)!==String(mod.id)) return false;
@@ -997,64 +1000,50 @@ function renderReviewView() {
 
     var statusLabel = filterNames[currentReviewFilter] || '';
 
-    // 第2层：项目卡片（使用独立审核项目数据）
-    if (!currentReviewProjectId) {
-        document.getElementById('pageTitle').textContent = '用例审核 - ' + statusLabel;
-        document.getElementById('rv-view-projects').style.display = 'block';
-        var btnProj = document.getElementById('btnAddReviewModuleProj');
-        if (btnProj) btnProj.style.display = (currentReviewFilter === 'rejected') ? 'none' : '';
-        var rvProjects = getReviewProjects().filter(function(p) { return (p.category || 'pending') === currentReviewFilter; });
-        var rvModules = getReviewModules().filter(function(m) { return (m.category || 'pending') === currentReviewFilter; });
-        var html = '';
-        rvProjects.forEach(function(p) {
-            var modCount = rvModules.filter(function(m) { return String(m.projectId) === String(p.id); }).length;
-            var isAdmin = currentUser && (currentUser.role === 'superadmin' || currentUser.role === 'admin');
-            // 删除按钮依然加锁
-            var delBtn = isAdmin ? '<button class="btn btn-small btn-danger card-del-btn" onclick="event.stopPropagation(); confirmDeleteReviewProject(\'' + p.id + '\')">删除</button>' : '';
-            // 重命名按钮对所有人开放，统一调用 openEditProjectModal
-            var editBtn = '<button class="btn btn-small btn-primary card-edit-btn" onclick="event.stopPropagation(); openEditProjectModal(\'' + p.id + '\', \'' + esc(p.name).replace(/'/g, "\\'") + '\')">重命名</button>';
-            html += '<div class="grid-card" onclick="selectReviewProject(\'' + p.id + '\',\'' + esc(p.name).replace(/'/g, "\\'") + '\')">' +
-                    editBtn + delBtn +
-                    '<h3>' + hierarchyIcons.folder + ' ' + esc(p.name) + '</h3>' +
-                    '<p style="margin-top:12px">包含 <strong>' + modCount + '</strong> 个模块</p>' +
-                    '<div class="grid-card-footer">进入项目 →</div></div>';
-        });
-        if (!html) html = '<div class="empty-state" style="grid-column:1/-1">暂无审核项目，请点击右上角新建。</div>';
-        document.getElementById('reviewProjectGrid').innerHTML = html;
-        return;
-    }
-
-    // 第3层：模块卡片（使用独立审核模块数据）
+    // ================= 核心修改：合并第2层与第3层 =================
+    // 直接展示【模块卡片】（彻底跳过项目层级直达模块）
     if (!currentReviewModuleId) {
-        var rvProjects = getReviewProjects();
-        var projName = '';
-        rvProjects.forEach(function(p) { if (String(p.id) === String(currentReviewProjectId)) projName = p.name; });
-        document.getElementById('pageTitle').textContent = '用例审核 - ' + statusLabel + ' - ' + projName;
+        document.getElementById('pageTitle').textContent = '用例审核 - ' + statusLabel;
         document.getElementById('rv-view-modules').style.display = 'block';
+
         var btnMod = document.getElementById('btnAddReviewModuleMod');
         if (btnMod) btnMod.style.display = (currentReviewFilter === 'rejected') ? 'none' : '';
-        var rvModules = getReviewModules().filter(function(m) { return String(m.projectId) === String(currentReviewProjectId); });
+
+        // 直接获取当前状态（待审核/未通过）下的【所有模块】，不再受限于当前项目
+        var rvModules = getReviewModules().filter(function(m) { return (m.category || 'pending') === currentReviewFilter; });
+        var rvProjects = getReviewProjects(); // 用于反查项目名称
         var rd = getReviewData();
         var rvTcs = getReviewTestcases();
         var html = '';
+
         rvModules.forEach(function(m) {
             var cnt = 0;
             rvTcs.forEach(function(tc) {
                 if (String(tc.moduleId) === String(m.id) && (rd[tc.id] || 'pending') === currentReviewFilter) cnt++;
             });
+
+            // 智能反查：获取该模块所属的项目名称，方便在卡片上展示
+            var projName = '未知项目';
+            rvProjects.forEach(function(p){ if(String(p.id) === String(m.projectId)) projName = p.name; });
+
             var isAdmin = currentUser && (currentUser.role === 'superadmin' || currentUser.role === 'admin');
             var delBtn = isAdmin ? '<button class="btn btn-small btn-danger card-del-btn" onclick="event.stopPropagation(); confirmDeleteReviewModule(\'' + m.id + '\')">删除</button>' : '';
-            var editBtn = '<button class="btn btn-small btn-primary card-edit-btn" onclick="event.stopPropagation(); openEditModuleModal(\''+currentReviewProjectId+'\', \'' + m.id + '\', \'' + esc(m.name).replace(/'/g, "\\'") + '\')">重命名</button>';
-            html += '<div class="grid-card" onclick="selectReviewModule(\'' + m.id + '\',\'' + esc(m.name).replace(/'/g, "\\'") + '\')">' +
+            var editBtn = '<button class="btn btn-small btn-primary card-edit-btn" onclick="event.stopPropagation(); openEditModuleModal(\''+m.projectId+'\', \'' + m.id + '\', \'' + esc(m.name).replace(/'/g, "\\'") + '\')">重命名</button>';
+
+            // 核心修改：点击卡片时，带着项目ID和模块ID直接 jump 到用例列表
+            html += '<div class="grid-card" onclick="jumpReviewModule(\''+currentReviewFilter+'\', \''+statusLabel+'\', \''+m.projectId+'\', \''+m.id+'\')">' +
                     editBtn + delBtn +
                     '<h3>' + hierarchyIcons.file + ' ' + esc(m.name) + '</h3>' +
-                    '<p style="margin-top:12px">' + statusLabel + '用例：<strong>' + cnt + '</strong> 条</p>' +
+                    '<p style="margin-top:8px; font-size:12px; color:var(--primary); font-weight:600;">所属项目：' + esc(projName) + '</p>' +
+                    '<p style="margin-top:6px;">' + statusLabel + '用例：<strong>' + cnt + '</strong> 条</p>' +
                     '<div class="grid-card-footer">进入模块 →</div></div>';
         });
-        if (!html) html = '<div class="empty-state" style="grid-column:1/-1">该项目下暂无模块，请点击右上角新建。</div>';
+
+        if (!html) html = '<div class="empty-state" style="grid-column:1/-1">暂无审核模块，请点击右上角新建。</div>';
         document.getElementById('reviewModuleGrid').innerHTML = html;
         return;
     }
+    // ================= 修改结束 =================
 
     // 第4层：用例列表
     var rvProjects = getReviewProjects();
@@ -1306,44 +1295,38 @@ function saveReviewCaseEdit() {
     renderReviewTable();
 }
 
-// 【新增】：清理审核区空项目和空模块的“清道夫”魔法函数
-function cleanUpEmptyReviewNodes() {
-    var tcs = getReviewTestcases();
-    var rd = getReviewData();
+// 【修改】：智能版清道夫，只清理刚刚被搬空的模块，绝不误伤其他刚新建的空模块
+function cleanUpEmptyReviewNodes(operatedModIds) {
     var mods = getReviewModules();
     var projs = getReviewProjects();
+    var tcs = getReviewTestcases();
 
-    var activeModKeys = {};
-    var activeProjKeys = {};
+    // 核心：如果传入了刚刚被操作过的模块ID列表，我们就去专门检查它们
+    if (operatedModIds && operatedModIds.length > 0) {
+        var activeModKeys = {};
+        // 找出所有还在审核区的用例，登记它们所属的模块
+        tcs.forEach(function(tc) {
+            activeModKeys[tc.moduleId] = true;
+        });
 
-    // 1. 扫描所有还在审核区的用例，标记它们所属的模块和项目为"活跃状态"
-    tcs.forEach(function(tc) {
-        var status = rd[tc.id] || 'pending';
-        activeModKeys[tc.moduleId + '_' + status] = true;
-        activeProjKeys[tc.projectId + '_' + status] = true;
-    });
+        // 挨个检查刚刚被搬运的模块，如果它里面已经没有任何用例了，就把它删掉
+        operatedModIds.forEach(function(modId) {
+            if (!activeModKeys[modId]) {
+                mods = mods.filter(function(m) { return String(m.id) !== String(modId); });
+            }
+        });
+        saveReviewModules(mods);
+    }
 
-    // 2. 过滤掉那些没有任何活跃用例的空模块
-    var newMods = mods.filter(function(m) {
-        return activeModKeys[m.id + '_' + (m.category || 'pending')];
-    });
-
-    // 3. 过滤掉那些没有任何活跃用例的空项目
-    var newProjs = projs.filter(function(p) {
-        return activeProjKeys[p.id + '_' + (p.category || 'pending')];
-    });
-
-    // 4. 将清理后的干净菜单存回本地
-    saveReviewModules(newMods);
-    saveReviewProjects(newProjs);
-
-    // 【核心修复】：检查当前停留的模块或项目是否已经被清道夫干掉了，如果被干掉了，就清除本地记忆
-    var stillHasMod = newMods.find(function(m) { return m.id === currentReviewModuleId; });
+    // 仅检查当前停留的模块或项目是否被清理了
+    // 如果被清理了，就清除本地的定位记忆，防止页面白屏
+    var stillHasMod = mods.find(function(m) { return m.id === currentReviewModuleId; });
     if (!stillHasMod && currentReviewModuleId) {
         currentReviewModuleId = '';
         localStorage.removeItem('qa_rv_moduleId');
     }
-    var stillHasProj = newProjs.find(function(p) { return p.id === currentReviewProjectId; });
+
+    var stillHasProj = projs.find(function(p) { return p.id === currentReviewProjectId; });
     if (!stillHasProj && currentReviewProjectId) {
         currentReviewProjectId = '';
         localStorage.removeItem('qa_rv_projectId');
@@ -1352,7 +1335,13 @@ function cleanUpEmptyReviewNodes() {
 
 function deleteReviewCase(tcId) {
     if (!confirm('确定要删除此用例吗？')) return;
-    var tcs = getReviewTestcases().filter(function(t) { return t.id !== tcId; });
+    var tcs = getReviewTestcases();
+
+    // 【新增】：在删除前，记住这个用例属于哪个模块
+    var targetTc = tcs.find(function(t) { return t.id === tcId; });
+    var operatedModId = targetTc ? targetTc.moduleId : null;
+
+    tcs = tcs.filter(function(t) { return t.id !== tcId; });
     saveReviewTestcases(tcs);
     // 清理审核状态
     var rd = getReviewData();
@@ -1362,8 +1351,8 @@ function deleteReviewCase(tcId) {
     reviewSelectedIds = reviewSelectedIds.filter(function(id) { return id !== tcId; });
     showToast('用例已删除', 'success');
 
-    // 【新增】：调用清道夫，顺手刷新左侧边栏
-    cleanUpEmptyReviewNodes();
+    // 【修改】：调用智能清道夫，传入刚才操作的模块ID
+    cleanUpEmptyReviewNodes(operatedModId ? [operatedModId] : []);
     renderSidebar();
 
     // 【核心修复】：不要只刷新死板的表格，要刷新整个动态视图
@@ -1491,8 +1480,17 @@ async function executeMoveReview() {
     var target = document.querySelector('input[name="moveTarget"]:checked').value;
     if (reviewSelectedIds.length === 0) { showToast('没有选中的用例', 'error'); return; }
 
+    // 【新增核心】：在移动前，收集所有被勾选用例所属的模块ID，方便后续做智能清理
+    var currentTcs = getReviewTestcases();
+    var operatedModIds = [];
+    currentTcs.forEach(function(tc) {
+        if (reviewSelectedIds.indexOf(tc.id) > -1 && operatedModIds.indexOf(tc.moduleId) === -1) {
+            operatedModIds.push(tc.moduleId);
+        }
+    });
+
     if (target === 'review') {
-        // === 审核内流转逻辑（保持原样不动） ===
+        // === 审核内流转逻辑 ===
         var cat = document.getElementById('moveCat').value;
         var modName = document.getElementById('moveModReviewName').value.trim();
         if (!cat) { showToast('请选择目标分类', 'error'); return; }
@@ -1527,14 +1525,17 @@ async function executeMoveReview() {
         reviewSelectedIds = [];
         var checkAllBtn = document.getElementById('reviewCheckAll');
         if(checkAllBtn) checkAllBtn.checked = false;
-        cleanUpEmptyReviewNodes();
+
+        // 【核心修改】：传入被搬空的模块ID给清道夫
+        cleanUpEmptyReviewNodes(operatedModIds);
+
         renderSidebar();
         closeModal('moveReviewModal');
         showToast('成功移动 ' + movedCount + ' 条用例至审核 - ' + (cat === 'pending' ? '待审核' : '未通过'), 'success');
         renderReviewView();
 
     } else {
-        // === 移动至用例仓库逻辑（全新：物理隔离双写版） ===
+        // === 移动至用例仓库逻辑 ===
         var projNameInput = document.getElementById('moveProjRepoInput').value.trim();
         var modNameInput = document.getElementById('moveModRepoInput').value.trim();
 
@@ -1584,14 +1585,14 @@ async function executeMoveReview() {
             matchedProj = data.projects.find(function(p) { return p.name === projNameInput; });
             matchedMod = (matchedProj.modules || []).find(function(m) { return m.name === modNameInput; });
 
-            // 4. 【核心修复】：准备两份独立副本
+            // 4. 准备两份独立副本
             var tcs = getReviewTestcases();
             var allNewCases = [];
-            var remaining = []; // 修复：在这里明确定义 remaining 数组
+            var remaining = [];
 
             tcs.forEach(function(tc) {
                 if (reviewSelectedIds.indexOf(tc.id) > -1) {
-                    // 副本 A：进入仓库原件 (assignedBy 为空，纯净入库)
+                    // 副本 A
                     allNewCases.push({
                         projectId: matchedProj.id, projectName: matchedProj.name,
                         moduleId: matchedMod.id, moduleName: matchedMod.name,
@@ -1602,23 +1603,19 @@ async function executeMoveReview() {
                         assignedBy: '', executor: ''
                     });
 
-                    // 副本 B：专属进入任务中心的“我创建的”
+                    // 副本 B
                     allNewCases.push({
                         projectId: matchedProj.id, projectName: matchedProj.name,
                         moduleId: matchedMod.id, moduleName: matchedMod.name,
                         point: tc.point, level: tc.level,
                         precondition: tc.precondition, steps: tc.steps,
                         expected: tc.expected, remark: tc.remark,
-                        // 【关键修改 1】：强制将创建人设为当前点击移动的用户，确保它能出现在“我创建的”列表
                         creator: currentUser.username,
                         status: '待测试',
-                        // 【关键修改 2】：随便给一个非空字符串(如"系统流转")，让系统判定它属于任务中心，
-                        // 但绝对不写当前用户名，这样它就不会跑错跑到“我分配的”里面去
                         assignedBy: '系统流转',
                         executor: ''
                     });
                 } else {
-                    // 不是选中的，保留在审核队列中
                     remaining.push(tc);
                 }
             });
@@ -1632,9 +1629,7 @@ async function executeMoveReview() {
                 const resData = await resAdd.json();
 
                 if (resData.success) {
-                    // 更新审核区本地数据
                     saveReviewTestcases(remaining);
-
                     var rd = getReviewData();
                     reviewSelectedIds.forEach(function(id) { delete rd[id]; });
                     saveReviewData(rd);
@@ -1643,7 +1638,9 @@ async function executeMoveReview() {
                     var checkAllBtn = document.getElementById('reviewCheckAll');
                     if(checkAllBtn) checkAllBtn.checked = false;
 
-                    cleanUpEmptyReviewNodes();
+                    // 【核心修改】：传入被搬空的模块ID给清道夫
+                    cleanUpEmptyReviewNodes(operatedModIds);
+
                     await fetchServerData();
                     renderSidebar();
                     closeModal('moveReviewModal');
