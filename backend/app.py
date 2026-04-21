@@ -12,7 +12,8 @@ app = Flask(__name__)
 CORS(app)
 
 # ================= 数据库配置 =================
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Hgq920221??@127.0.0.1:3306/qa_testhub'
+# 将 ?? 替换为 %3F%3F
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Hgq920221%3F%3F@127.0.0.1:3306/qa_testhub'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 【本次新增：解决 WinError 10055 缓冲区不足的终极连接池配置】
@@ -25,7 +26,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 # 【手术 2：在此处配置 JWT 密钥并初始化】
 # 请将 'Your_Super_Secret_Key_Here' 替换成任意一段复杂的乱码，作为你服务器端签发 Token 的唯一玉玺
-app.config['JWT_SECRET_KEY'] = 'Your_Super_Secret_Key_Here'
+app.config['JWT_SECRET_KEY'] = 'x8&Jk9#mP2$vL5@qW1*zC4^nB7!yF0~h'
 # 【新增：设置通行证有效期为 30 分钟】
 # 这意味着用户登录 120分钟后，通行证会自动失效
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=120)
@@ -156,8 +157,8 @@ class User(db.Model):
     role = db.Column(db.String(20), default='tester')
     avatar = db.Column(db.String(50), default='male')
 
-    # 用于存储自定义头像的 Base64 数据 (大容量文本)
-    avatar_data = db.Column(db.Text)
+    # 用于存储自定义头像的 Base64 数据 (通过设置极大的长度，强制 MySQL 使用 LONGTEXT)
+    avatar_data = db.Column(db.Text(4294967295))
 
     def to_dict(self):
         # 注意：返回给前端的数据绝对不能包含 password_hash！

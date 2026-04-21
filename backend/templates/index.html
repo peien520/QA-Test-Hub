@@ -109,7 +109,14 @@
 
         <div id="page-casegen" class="page-section">
           <div class="content-card">
-            <div class="card-header"><div class="card-title">用例生成</div><div class="toolbar"><button class="btn btn-small" onclick="generateCasesFromInput()">执行生成</button><button class="btn btn-danger" style="height: 31px; padding: 0 16px; font-size: 13px; font-weight: 500; border-radius: 8px; border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; transition: all 0.2s;" onclick="clearData()">清空</button></div></div>
+            <div class="card-header">
+            <div class="card-title">用例生成</div>
+              <div class="toolbar">
+              <button class="btn btn-small" onclick="generateCasesFromInput()">执行生成</button>
+                <button class="btn btn-small btn-success" onclick="saveGeneratedCases()">保存至待审核</button>
+                <button class="btn btn-small btn-danger" onclick="clearGeneratedCases()">清空</button>
+              </div>
+            </div>
             <div class="generator-layout">
               <div class="generator-box">
                 <div class="generator-upload" onclick="document.getElementById('genFile').click()">
@@ -117,11 +124,6 @@
                     <br>上传策划案 (支持 .txt, .md, .docx)
                 </div>
                 <input type="file" id="genFile" accept=".txt,.md,.docx,.csv" onchange="handleGeneratorFile(event)">
-                <div class="form-row">
-                  <label>所属仓库</label>
-                  <input type="text" value="用例审核" disabled style="background:var(--bg-body); color:var(--text-secondary); cursor:not-allowed;">
-                  <input type="hidden" id="genRepo" value="review">
-                </div>
                 <div class="form-row"><label class="required">所属项目</label><input type="text" id="genProject" placeholder="请输入项目名"></div>
                 <div class="form-row"><label class="required">所属模块</label><input type="text" id="genModule" placeholder="请输入模块名"></div>
                 <textarea id="genPrompt" style="display:none;"></textarea>

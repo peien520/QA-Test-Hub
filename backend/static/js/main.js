@@ -2496,19 +2496,6 @@ function renderTaskTableContent(data) {
 
         if (!match) return false;
 
-        // --- 重新补全的操作列逻辑 ---
-        if (currentTaskFilter === 'completed') {
-            // “已完成”页签：显示我们辛苦调好的 26/04/16 格式时间
-            let displayTime = tc.finishTime || tc.createTime || '-';
-            html += '<td class="actions" style="font-size:12px; color:var(--text-secondary); white-space:nowrap;">' + displayTime + '</td>';
-        } else {
-            // 其他页签（如你截图里的“我负责的”）：显示“编辑”按钮
-            // 确保这一行被加上，你的按钮就回来了
-            html += '<td class="actions"><button class="btn btn-small btn-primary" onclick="openCorrectModal(' + tc.id + ')">修正</button></td>';
-        }
-
-        html += '</tr>'; // 别忘了最后闭合这一行
-
         if (search && String(tc.point || '').toLowerCase().indexOf(search) === -1) match = false;
         return match;
     });
@@ -3411,7 +3398,7 @@ function inferCaseFromLine(line,index){var pure=line.replace(/^[-*•\d.、\s]+/
 
 function generateCasesFromInput(){
     var text=document.getElementById('genPrompt').value.trim();
-    var repo=document.getElementById('genRepo').value;
+    var repo='review'; // 已经去除了界面输入框，这里固定为 review
     var projectName=document.getElementById('genProject').value.trim();
     var moduleName=document.getElementById('genModule').value.trim();
 
@@ -3500,6 +3487,12 @@ async function saveGeneratedCases(){
         showToast('没有可保存的用例','error');
         return;
     }
+
+    // --- 本次新增：弹窗确认逻辑 ---
+    if(!confirm('是否移动至待审核？')) {
+        return; // 用户点击了“取消”，直接退出函数，不执行后续保存
+    }
+    // ------------------------------
 
     // 获取页面填写的项目和模块名称
     var projectName = document.getElementById('genProject').value.trim();
